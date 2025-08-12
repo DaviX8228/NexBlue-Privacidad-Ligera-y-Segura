@@ -15,11 +15,8 @@ import androidx.navigation.navArgument
 import com.nexblue.app.bluetooth.BluetoothManager
 import com.nexblue.app.data.db.AppDatabase
 import com.nexblue.app.ui.theme.ui.BluetoothSetupScreen
-import com.nexblue.app.ui.theme.ui.ChatListScreen
 import com.nexblue.app.ui.theme.ui.ChatPrivadoScreen
 import com.nexblue.app.ui.theme.ui.ChatPublicScreen
-import com.nexblue.app.ui.theme.ui.ChatScreen
-import com.nexblue.app.ui.theme.ui.ScanScreen
 import com.nexblue.app.ui.theme.ui.SplashScreen
 
 @Composable
@@ -63,41 +60,6 @@ fun AppNavHost(
             )
         }
 
-        composable(NavRoutes.ChatList) {
-            val db = remember { AppDatabase.getInstance(context) }
-            ChatListScreen(
-                onChatClick = { userId ->
-                    navController.navigate(NavRoutes.chatWith(userId))
-                },
-                onNewChatClick = {
-                    navController.navigate(NavRoutes.Scan)
-                },
-                chatDao = db.chatDao()
-            )
-        }
-
-        composable(NavRoutes.Scan) {
-            ScanScreen(
-                onUserSelected = { userId ->
-                    navController.navigate(NavRoutes.chatWith(userId))
-                },
-                hasBluetoothPermissions = hasBluetoothPermissions,
-                requestPermissionLauncher = requestPermissionLauncher,
-                enableBluetoothLauncher = enableBluetoothLauncher,
-                bluetoothPermissions = bluetoothPermissions
-            )
-        }
-
-        composable(NavRoutes.Chat) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
-            val db = remember { AppDatabase.getInstance(context) }
-            ChatScreen(
-                userId = userId,
-                chatDao = db.chatDao(),
-                messageDao = db.messageDao(),
-                context = context
-            )
-        }
 
         composable(NavRoutes.ChatPublic) {
             ChatPublicScreen(

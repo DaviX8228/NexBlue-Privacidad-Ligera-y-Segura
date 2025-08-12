@@ -22,7 +22,6 @@ import java.nio.charset.Charset
 import java.util.*
 import kotlin.math.pow
 
-
 // BLEChatManager.kt - Versión corregida para mensajes públicos y privados
 @SuppressLint("MissingPermission")
 object BLEChatManager {
@@ -58,7 +57,6 @@ object BLEChatManager {
 
     private val mensajeFragmentos = mutableMapOf<String, MutableList<String>>()
     private val mensajeConteo = mutableMapOf<String, Int>()
-    private var isSending = false
 
     fun initialize(context: Context) {
         val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
@@ -166,11 +164,11 @@ object BLEChatManager {
         Log.d(TAG, "⏹️ Advertising detenido")
     }
 
-    // NUEVO: FUNCIÓN UNIFICADA PARA ESCUCHAR PÚBLICOS Y PRIVADOS
+    // ESCANEO UNIFICADO PARA PÚBLICOS Y PRIVADOS
     fun startScanning(
         context: Context,
         onPublicMessage: (MensajePublicoCompleto) -> Unit,
-        onPrivateMessage: (String, String, String) -> Unit = { _, _, _ -> } // deAlias, paraAlias, mensaje
+        onPrivateMessage: (String, String, String) -> Unit = { _, _, _ -> }
     ) {
         if (scanner == null) {
             Log.e(TAG, "❌ Scanner no disponible")
@@ -230,7 +228,6 @@ object BLEChatManager {
                 return
             }
 
-            // Limpiar caché
             if (processedMessages.size > 50) {
                 processedMessages.removeAll(processedMessages.take(25).toSet())
             }
@@ -254,7 +251,6 @@ object BLEChatManager {
                         val mensajeFinal = lista.joinToString("")
                         mensajeFragmentos.remove(header)
                         mensajeConteo.remove(header)
-
                         processMensajeCompleto(mensajeFinal)
                     }
                 }
@@ -275,7 +271,7 @@ object BLEChatManager {
 
         val alias = campos[0]
         val id = campos[1]
-        val tipo = campos[2] // PUBLIC o PRIVATE
+        val tipo = campos[2]
         val contenido = campos[3]
 
         Log.d(TAG, "📋 CAMPOS PROCESADOS:")
@@ -286,14 +282,13 @@ object BLEChatManager {
 
         when (tipo) {
             "PUBLIC" -> {
-                if (contenido.isNotBlank() || contenido.isEmpty()) { // Permitir pings vacíos
+                if (contenido.isNotBlank() || contenido.isEmpty()) {
                     val mensajeCompleto = MensajePublicoCompleto(
                         mensaje = contenido,
                         alias = alias,
                         id = id,
                         etiqueta = "Social"
                     )
-
                     handler.post {
                         onPublicMessageReceived?.invoke(mensajeCompleto)
                         Log.d(TAG, "✅ Mensaje público enviado al callback")
@@ -349,7 +344,7 @@ object BLEChatManager {
         msg: String,
         alias: String,
         userId: String,
-        tipo: String // "PUBLIC" o "PRIVATE"
+        tipo: String
     ): List<String> {
         val msgId = (System.currentTimeMillis() % 10000).toString(16)
         val contenido = "$alias|$userId|$tipo|$msg"
@@ -384,7 +379,7 @@ object BLEChatManager {
                     Log.d(TAG, "📤 Fragmento ${index + 1}/${fragments.size}: '${fragments[index]}'")
                     startAdvertisingWithMessage(fragments[index])
                     index++
-                    handler.postDelayed(this, 900) // 900ms entre fragmentos
+                    handler.postDelayed(this, 900)
                 } else {
                     startAdvertisingWithMessage(fragments.last())
                     Log.d(TAG, "✅ Todos los fragmentos enviados")

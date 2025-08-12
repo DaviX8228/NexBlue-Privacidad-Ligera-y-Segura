@@ -8,6 +8,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,8 +42,15 @@ import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 
 // ChatPrivadoScreen.kt - Versión corregida con comunicación bidireccional
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatPrivadoScreen(
     context: Context,
@@ -57,6 +66,9 @@ fun ChatPrivadoScreen(
     val myUserId = generateUserId(context)
     val myShortId = myUserId.takeLast(3)
     val mensajes = remember { mutableStateListOf<MensajePrivado>() }
+
+    val clipboardManager = LocalClipboardManager.current
+    val hapticFeedback = LocalHapticFeedback.current
 
     // Cargar mensajes existentes del historial
     LaunchedEffect(aliasDestinatario) {
@@ -260,6 +272,21 @@ fun ChatPrivadoScreen(
                                     bottomEnd = if (isMyMessage) 2.dp else 20.dp
                                 )
                             )
+                            .combinedClickable(
+                                onLongClick = {
+                                    // Vibración háptica
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Copiar al clipboard
+                                    clipboardManager.setText(AnnotatedString(mensaje.texto))
+                                    //para toast
+                                    Log.d("ChatPrivado", "✅ Mensaje copiado '${mensaje.texto}'")
+                                    //toast
+                                    Toast.makeText(context, "✅ Mensaje copiado", Toast.LENGTH_SHORT).show()
+                                },
+                                onClick = {
+                                    //lo que sea
+                                }
+                            )
                             .padding(12.dp)
                             .widthIn(max = 250.dp)
                     ) {
@@ -274,14 +301,16 @@ fun ChatPrivadoScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                         }
 
-                        Text(
-                            text = mensaje.texto,
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        // Texto del mensaje con selección habilitada
+                        SelectionContainer {
+                            Text(
+                                text = mensaje.texto,
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(4.dp))
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,

@@ -9,6 +9,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.Size
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -44,8 +46,15 @@ import com.nexblue.app.data.model.UserPreferences.generateUserId
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 
 // ChatPublicScreen.kt - Versión corregida con manejo de mensajes privados
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatPublicScreen(
     context: Context,
@@ -65,6 +74,9 @@ fun ChatPublicScreen(
 
     val myUserId = generateUserId(context)
     val myShortId = remember { myUserId.takeLast(3) }
+
+    val clipboardManager = LocalClipboardManager.current
+    val hapticFeedback = LocalHapticFeedback.current
 
     // Inicializar BLEChatManager
     LaunchedEffect(Unit) {
@@ -308,6 +320,25 @@ fun ChatPublicScreen(
                                     bottomEnd = if (isMyMessage) 2.dp else 20.dp
                                 )
                             )
+                            .combinedClickable(
+                                onLongClick = {
+                                    // Vibración háptica
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Copiar al clipboard
+                                    clipboardManager.setText(AnnotatedString(mensaje.texto))
+                                    // Mostrar un Toast
+                                    Log.d("ChatPublico", "✅ Mensaje copiado '${mensaje.texto}'")
+                                    //toast
+                                    Toast.makeText(context, "✅ Mensaje copiado", Toast.LENGTH_SHORT).show()
+                                },
+                                onClick = {
+                                    // Si no es mi mensaje, ir al chat privado
+                                    if (!isMyMessage) {
+                                        Log.d("ChatPublico", "📱 Navegando a chat privado con ${mensaje.alias}")
+                                        onNavigateToPrivateChat(mensaje.alias, "")
+                                    }
+                                }
+                            )
                             .padding(12.dp)
                             .widthIn(max = 220.dp)
                     ) {
@@ -315,12 +346,7 @@ fun ChatPublicScreen(
                             // Hacer clic en el alias para ir al chat privado
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .clickable {
-                                        Log.d("ChatPublico", "🔗 Navegando a chat privado con ${mensaje.alias}")
-                                        onNavigateToPrivateChat(mensaje.alias, "")
-                                    }
-                                    .padding(2.dp)
+                                modifier = Modifier.padding(2.dp)
                             ) {
                                 Text(
                                     text = "${mensaje.alias} (${mensaje.id})",
@@ -339,14 +365,16 @@ fun ChatPublicScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                         }
 
-                        Text(
-                            text = mensaje.texto,
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        // Texto del mensaje con selección habilitada
+                        SelectionContainer {
+                            Text(
+                                text = mensaje.texto,
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(4.dp))
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -616,6 +644,7 @@ fun ChatPublicScreen(
             containerColor = Color(0xFF2D2D2D)
         )
     }
+
 }
 
 // Data classes

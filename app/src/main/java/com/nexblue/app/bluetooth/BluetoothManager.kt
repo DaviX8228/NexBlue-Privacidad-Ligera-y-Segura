@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager as AndroidBluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -38,6 +39,11 @@ object BluetoothManager {
             ?: UUID.randomUUID().toString().take(4).uppercase()
     }
 
+    // NUEVO: Alias para el dispositivo
+    val myAlias: String by lazy {
+        "${Build.MODEL.take(10)}"
+    }
+
     fun initialize(context: Context) {
         if (isInitialized) {
             Log.d(TAG, "Ya está inicializado")
@@ -45,10 +51,13 @@ object BluetoothManager {
         }
 
         this.context = context.applicationContext
+
+        // Inicializar BLEChatManager en lugar de BluetoothAdvertiser
+        BLEChatManager.initialize(context)
+
         startGattServer()
-        BluetoothAdvertiser.startAdvertising(context)
         isInitialized = true
-        Log.d(TAG, "Sistema inicializado con userId: $myUserId")
+        Log.d(TAG, "Sistema inicializado con userId: $myUserId, alias: $myAlias")
     }
 
     fun addMessageCallback(callback: (String, BluetoothDevice) -> Unit) {
@@ -179,9 +188,43 @@ object BluetoothManager {
 
     fun sendMessage(context: Context, device: BluetoothDevice, message: String) {
         Log.d(TAG, "Enviando mensaje: '$message' a ${device.address}")
-
         // Usar el cliente mejorado
         ChatGattClient().sendMessage(context, device, message)
+    }
+
+    // NUEVAS FUNCIONES: Usar BLEChatManager para envío de mensajes
+    fun sendPublicMessage(context: Context, mensaje: String, etiqueta: String = "Social") {
+        BLEChatManager.startAdvertising(
+            context = context,
+            mensaje = mensaje,
+            alias = myAlias,
+            userId = myUserId,
+            etiqueta = etiqueta
+        )
+    }
+
+    fun sendPrivateMessage(context: Context, mensaje: String, destinatarioAlias: String) {
+        BLEChatManager.sendPrivateMessage(
+            context = context,
+            mensaje = mensaje,
+            alias = myAlias,
+            userId = myUserId,
+            destinatarioAlias = destinatarioAlias
+        )
+    }
+
+    // NUEVA FUNCIÓN: Iniciar escucha de mensajes
+    fun startListening(
+        context: Context,
+        onPublicMessage: (MensajePublicoCompleto) -> Unit,
+        onPrivateMessage: (String, String, String) -> Unit = { _, _, _ -> }
+    ) {
+        BLEChatManager.startScanning(context, onPublicMessage, onPrivateMessage)
+    }
+
+    // NUEVA FUNCIÓN: Detener escucha de mensajes
+    fun stopListening() {
+        BLEChatManager.stopScanning()
     }
 
     fun startServices(context: Context) {
@@ -198,7 +241,10 @@ object BluetoothManager {
         try {
             gattServer?.close()
             gattServer = null
-            BluetoothAdvertiser.stopAdvertising()
+
+            // Usar BLEChatManager en lugar de BluetoothAdvertiser
+            BLEChatManager.shutdown()
+
             messageCallbacks.clear()
             processedRequests.clear()
             isInitialized = false
@@ -207,4 +253,8 @@ object BluetoothManager {
             Log.e(TAG, "Error en shutdown: ${e.message}")
         }
     }
+
+    // FUNCIONES DE ESTADO
+    fun isAdvertising(): Boolean = BLEChatManager.isAdvertising()
+    fun isScanning(): Boolean = BLEChatManager.isScanning()
 }

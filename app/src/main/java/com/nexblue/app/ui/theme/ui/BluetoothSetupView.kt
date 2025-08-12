@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavHostController
 import com.nexblue.app.R
-import com.nexblue.app.bluetooth.BluetoothAdvertiser
 import com.nexblue.app.bluetooth.BluetoothManager
 import com.nexblue.app.bluetooth.BluetoothUtils
 import com.nexblue.app.bluetooth.BluetoothUtils.hasBluetoothPermissions
@@ -46,9 +45,6 @@ fun BluetoothSetupScreen(
     var showErrorDialog by remember { mutableStateOf(false) }
     var showCompatibilityDialog by remember { mutableStateOf(false) }
 
-
-    // ❌ REMOVIDO: BluetoothManager initialization
-    // Solo usaremos BLEChatManager para evitar conflictos
 
     // Diálogo de error
     if (showErrorDialog && errorMessage != null) {
